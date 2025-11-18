@@ -9,14 +9,55 @@ import pandas as pd
 from langdetect import detect
 import re
 
+# ----------------------------
+# Streamlit page setup
+# ----------------------------
 st.set_page_config(page_title="AI News Orchestrator", layout="wide")
 st.title("📰 AI News Orchestrator")
 
+# ----------------------------
+# Robust SpaCy model loader
+# ----------------------------
+@st.cache_resource
+def load_spacy_model():
+    try:
+        import spacy  # Import inside function to avoid cache issues
+        return spacy.load("en_core_web_sm")
+    except ImportError:
+        st.error("❌ spaCy is not installed. Run `pip install spacy`.")
+        raise
+    except OSError:
+        st.info("Downloading spaCy model 'en_core_web_sm' ...")
+        import spacy.cli
+        spacy.cli.download("en_core_web_sm")
+        import spacy
+        return spacy.load("en_core_web_sm")
+
+# Load spaCy model safely
+nlp = load_spacy_model()
+
+# ----------------------------
+# Cache news fetching to avoid repeated API calls
+# ----------------------------
+@st.cache_data(ttl=600)
+def fetch_news_cached(topic):
+    return fetch_news(topic)
+
+# ----------------------------
+# Cache timeline generation to reduce processing time
+# ----------------------------
+@st.cache_data(ttl=600)
+def generate_timeline_cached(articles, api_key, topic):
+    return generate_timeline(articles, api_key, topic=topic)
+
+# ----------------------------
+# User input
+# ----------------------------
 topic = st.text_input("Enter an event/topic")
 
 if topic:
     st.info("🔍 Fetching news...")
-    articles = fetch_news(topic)
+    articles = fetch_news_cached(topic)
 
     if not articles:
         st.error("❌ No articles found for this topic.")
@@ -36,7 +77,6 @@ if topic:
         # ----------------------------
         # Basic Bias / Authenticity Score
         # ----------------------------
-        # Simple heuristic: well-known domains or non-clickbait titles
         for article in articles:
             title = article.get("title", "").lower()
             if any(
@@ -47,24 +87,21 @@ if topic:
                 article["source_score"] = 4  # default medium-high reliability
 
         # ----------------------------
-        # Generate AI summary (or dummy if quota exceeded)
+        # Generate AI summary
         # ----------------------------
-        timeline_output = generate_timeline(
-            articles, config.OPENAI_API_KEY, topic=topic
+        timeline_output = generate_timeline_cached(
+            articles, config.OPENAI_API_KEY, topic
         )
 
         # ----------------------------
         # Fact consistency check
         # ----------------------------
-        # Extract key numbers/dates from all article contents
         statements = {}
         for article in articles:
             content = article.get("content") or ""
-            # Very basic: extract all numbers and dates
             nums_dates = re.findall(r"\b\d{4}-\d{2}-\d{2}\b|\b\d+\b", content)
             for nd in nums_dates:
                 statements.setdefault(nd, []).append(article["title"])
-        # Mark conflicts: numbers/dates mentioned in multiple articles differently
         conflicts = {k: v for k, v in statements.items() if len(v) > 1}
 
         # ----------------------------
@@ -90,9 +127,7 @@ if topic:
         for item in timeline_output.get("timeline", []):
             pub_date = item.get("publishedAt", "")
             try:
-                pub_date = datetime.fromisoformat(
-                    pub_date.replace("Z", "+00:00")
-                ).strftime("%Y-%m-%d")
+                pub_date = datetime.fromisoformat(pub_date.replace("Z", "+00:00")).strftime("%Y-%m-%d")
             except:
                 pass
 
@@ -140,6 +175,9 @@ if topic:
                     "Reliability": item.get("source_score", 3),
                 }
             )
+
+        # Limit timeline to first 50 articles for performance
+        timeline_data = timeline_data[:50]
 
         if timeline_data:
             df_timeline = pd.DataFrame(timeline_data)
