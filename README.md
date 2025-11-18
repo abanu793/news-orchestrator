@@ -52,7 +52,7 @@ python app.py
 
 ## Demo Video
 
-Watch the demo here: [Demo Video](https://drive.google.com/file/d/1glHj21GPpgqopqhhNHYEV4DS52POn2IR/view?usp=sharing)
+Watch the demo here: [Demo Video](https://drive.google.com/file/d/1OdYlCodPxzv-h9j--3WtLi7y5at_wj-M/view?usp=sharing)
 
 
 Save and close the file.
