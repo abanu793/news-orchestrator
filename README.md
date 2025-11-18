@@ -32,3 +32,27 @@ pip install -r requirements.txt
 
 
 
+2\. Add .env file with your API keys:
+
+
+
+NEWS\_API\_KEY=your\_news\_api\_key
+
+OPENAI\_API\_KEY=your\_openai\_api\_key
+
+
+
+3\. Run the app:
+
+
+
+python app.py
+
+
+
+Save and close the file.
+
+
+
+
+
