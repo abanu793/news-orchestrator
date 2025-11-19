@@ -9,11 +9,15 @@ import pandas as pd
 from langdetect import detect
 import re
 
+# Force Streamlit Cloud rebuild
+
+
 # ----------------------------
 # Streamlit page setup
 # ----------------------------
 st.set_page_config(page_title="AI News Orchestrator", layout="wide")
 st.title("📰 AI News Orchestrator")
+
 
 # ----------------------------
 # Robust SpaCy model loader
@@ -22,6 +26,7 @@ st.title("📰 AI News Orchestrator")
 def load_spacy_model():
     try:
         import spacy  # Import inside function to avoid cache issues
+
         return spacy.load("en_core_web_sm")
     except ImportError:
         st.error("❌ spaCy is not installed. Run `pip install spacy`.")
@@ -29,12 +34,16 @@ def load_spacy_model():
     except OSError:
         st.info("Downloading spaCy model 'en_core_web_sm' ...")
         import spacy.cli
+
         spacy.cli.download("en_core_web_sm")
         import spacy
+
         return spacy.load("en_core_web_sm")
+
 
 # Load spaCy model safely
 nlp = load_spacy_model()
+
 
 # ----------------------------
 # Cache news fetching to avoid repeated API calls
@@ -43,12 +52,14 @@ nlp = load_spacy_model()
 def fetch_news_cached(topic):
     return fetch_news(topic)
 
+
 # ----------------------------
 # Cache timeline generation to reduce processing time
 # ----------------------------
 @st.cache_data(ttl=600)
 def generate_timeline_cached(articles, api_key, topic):
     return generate_timeline(articles, api_key, topic=topic)
+
 
 # ----------------------------
 # User input
@@ -127,7 +138,9 @@ if topic:
         for item in timeline_output.get("timeline", []):
             pub_date = item.get("publishedAt", "")
             try:
-                pub_date = datetime.fromisoformat(pub_date.replace("Z", "+00:00")).strftime("%Y-%m-%d")
+                pub_date = datetime.fromisoformat(
+                    pub_date.replace("Z", "+00:00")
+                ).strftime("%Y-%m-%d")
             except:
                 pass
 
